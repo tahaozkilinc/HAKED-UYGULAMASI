@@ -7,11 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole } from "@/lib/auth";
 import type { UserRole } from "@/types/database";
 
-type ActionState = { error?: string; success?: boolean; tempPassword?: string } | undefined;
-
-function generateTempPassword() {
-  return `Hk${Math.random().toString(36).slice(2, 8)}${Math.floor(Math.random() * 90 + 10)}!`;
-}
+type ActionState = { error?: string; success?: boolean } | undefined;
 
 export async function inviteUser(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   await requireRole("admin");
@@ -21,9 +17,11 @@ export async function inviteUser(_prevState: ActionState, formData: FormData): P
   const role = String(formData.get("role") ?? "firma") as UserRole;
   const companyId = String(formData.get("company_id") ?? "") || null;
   const phone = String(formData.get("phone") ?? "").trim() || null;
+  const password = String(formData.get("password") ?? "");
 
   if (!email || !fullName) return { error: "Ad soyad ve e-posta gereklidir." };
   if (role === "firma" && !companyId) return { error: "Firma rolündeki kullanıcı için bir firma seçmelisiniz." };
+  if (password.length < 8) return { error: "Şifre en az 8 karakter olmalıdır." };
 
   let admin;
   try {
@@ -32,11 +30,9 @@ export async function inviteUser(_prevState: ActionState, formData: FormData): P
     return { error: e instanceof Error ? e.message : "Yönetim istemcisi oluşturulamadı." };
   }
 
-  const tempPassword = generateTempPassword();
-
   const { data, error } = await admin.auth.admin.createUser({
     email,
-    password: tempPassword,
+    password,
     email_confirm: true,
     user_metadata: { full_name: fullName, role, company_id: companyId },
   });
@@ -50,7 +46,28 @@ export async function inviteUser(_prevState: ActionState, formData: FormData): P
   }
 
   revalidatePath("/admin/kullanicilar");
-  return { success: true, tempPassword };
+  return { success: true };
+}
+
+export async function setUserPassword(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  await requireRole("admin");
+
+  const id = String(formData.get("id") ?? "");
+  const password = String(formData.get("password") ?? "");
+
+  if (password.length < 8) return { error: "Şifre en az 8 karakter olmalıdır." };
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Yönetim istemcisi oluşturulamadı." };
+  }
+
+  const { error } = await admin.auth.admin.updateUserById(id, { password });
+  if (error) return { error: "Şifre güncellenemedi: " + error.message };
+
+  return { success: true };
 }
 
 export async function updateUser(_prevState: ActionState, formData: FormData): Promise<ActionState> {

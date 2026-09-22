@@ -1,50 +1,53 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import type { Hakedis, HakedisStatus, Profile } from "@/types/database";
+import type { HakedisStatus, Profile } from "@/types/database";
+
+interface DashboardHakedisRow {
+  id: string;
+  hakedis_no: number;
+  donem_baslangic: string;
+  donem_bitis: string;
+  status: HakedisStatus;
+  revizyon_sayisi: number;
+  companies: { name: string } | null;
+}
 
 export interface DashboardStats {
   durumSayilari: Record<HakedisStatus, number>;
-  sonHakedisler: (Hakedis & { companies: { name: string } | null })[];
+  sonHakedisler: DashboardHakedisRow[];
   firmaSayisi?: number;
-  toplamOnaylananTutar: number;
 }
 
-const BOS_DURUM_SAYILARI: Record<HakedisStatus, number> = {
-  taslak: 0,
-  incelemede: 0,
-  revizyon_istendi: 0,
-  onaylandi: 0,
-  silindi: 0,
-};
+const DURUMLAR: HakedisStatus[] = ["taslak", "incelemede", "revizyon_istendi", "onaylandi", "silindi"];
 
 export async function getDashboardStats(profile: Profile): Promise<DashboardStats> {
   const supabase = await createClient();
 
-  const { data: hakedisler } = await supabase
-    .from("hakedisler")
-    .select("*, companies(name)")
-    .order("created_at", { ascending: false });
+  const [sonHakedislerResult, sayimSonuclari, firmaSayimSonucu] = await Promise.all([
+    supabase
+      .from("hakedisler")
+      .select("id, hakedis_no, donem_baslangic, donem_bitis, status, revizyon_sayisi, companies(name)")
+      .order("created_at", { ascending: false })
+      .limit(8),
+    Promise.all(
+      DURUMLAR.map((durum) =>
+        supabase.from("hakedisler").select("id", { count: "exact", head: true }).eq("status", durum),
+      ),
+    ),
+    profile.role === "admin"
+      ? supabase.from("companies").select("id", { count: "exact", head: true })
+      : Promise.resolve({ count: undefined }),
+  ]);
 
-  const rows = (hakedisler ?? []) as unknown as (Hakedis & { companies: { name: string } | null })[];
-
-  const durumSayilari = { ...BOS_DURUM_SAYILARI };
-  let toplamOnaylananTutar = 0;
-  for (const row of rows) {
-    durumSayilari[row.status]++;
-    if (row.status === "onaylandi") toplamOnaylananTutar += row.net_tutar;
-  }
-
-  let firmaSayisi: number | undefined;
-  if (profile.role === "admin") {
-    const { count } = await supabase.from("companies").select("id", { count: "exact", head: true });
-    firmaSayisi = count ?? 0;
-  }
+  const durumSayilari = DURUMLAR.reduce((acc, durum, i) => {
+    acc[durum] = sayimSonuclari[i].count ?? 0;
+    return acc;
+  }, {} as Record<HakedisStatus, number>);
 
   return {
     durumSayilari,
-    sonHakedisler: rows.slice(0, 8),
-    firmaSayisi,
-    toplamOnaylananTutar,
+    sonHakedisler: (sonHakedislerResult.data ?? []) as unknown as DashboardHakedisRow[],
+    firmaSayisi: firmaSayimSonucu.count ?? undefined,
   };
 }

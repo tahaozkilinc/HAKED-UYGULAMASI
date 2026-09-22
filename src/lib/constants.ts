@@ -53,5 +53,3 @@ export const ALAN_TIPI_ETIKETLERI: Record<SchemaFieldType, string> = {
 };
 
 export const DUZENLENEBILIR_DURUMLAR: HakedisStatus[] = ["taslak", "revizyon_istendi"];
-
-export const KDV_VARSAYILAN = 20;

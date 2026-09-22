@@ -6,11 +6,12 @@ import { toast } from "sonner";
 
 import type { Company, Profile } from "@/types/database";
 import { ROL_ETIKETLERI } from "@/lib/constants";
-import { updateUser } from "./actions";
+import { updateUser, setUserPassword } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -28,6 +29,35 @@ import {
 } from "@/components/ui/dialog";
 
 const ROLLER = ["firma", "muhendis", "satin_alma", "admin"] as const;
+
+function SetPasswordForm({ userId }: { userId: string }) {
+  const [state, formAction, pending] = useActionState(setUserPassword, undefined);
+
+  useEffect(() => {
+    if (state?.success) toast.success("Şifre güncellendi.");
+  }, [state]);
+
+  return (
+    <form action={formAction} className="flex flex-col gap-2">
+      <input type="hidden" name="id" value={userId} />
+      <Label htmlFor={`password-${userId}`}>Yeni Şifre Belirle</Label>
+      <div className="flex gap-2">
+        <Input
+          id={`password-${userId}`}
+          name="password"
+          type="text"
+          minLength={8}
+          placeholder="En az 8 karakter"
+          className="flex-1"
+        />
+        <Button type="submit" variant="outline" disabled={pending}>
+          {pending ? "Kaydediliyor…" : "Şifreyi Değiştir"}
+        </Button>
+      </div>
+      {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
+    </form>
+  );
+}
 
 export function EditUserDialog({ user, companies }: { user: Profile; companies: Pick<Company, "id" | "name">[] }) {
   const [open, setOpen] = useState(false);
@@ -106,6 +136,9 @@ export function EditUserDialog({ user, companies }: { user: Profile; companies: 
             </Button>
           </DialogFooter>
         </form>
+
+        <Separator />
+        <SetPasswordForm userId={user.id} />
       </DialogContent>
     </Dialog>
   );

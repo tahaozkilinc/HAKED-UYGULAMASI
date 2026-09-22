@@ -5,22 +5,8 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
-import type { KesintiKalemi } from "@/types/database";
 
 type ActionState = { error?: string; success?: boolean } | undefined;
-
-function parseKesintiler(raw: string | null): KesintiKalemi[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((k) => k && typeof k === "object" && k.ad)
-      .map((k) => ({ ad: String(k.ad), tutar: Number(k.tutar) || 0 }));
-  } catch {
-    return [];
-  }
-}
 
 function parseKalemler(raw: string | null): { sira_no: number; data: Record<string, unknown>; tutar: number }[] {
   if (!raw) return [];
@@ -44,8 +30,6 @@ export async function createHakedis(_prevState: ActionState, formData: FormData)
   const donemBaslangic = String(formData.get("donem_baslangic") ?? "");
   const donemBitis = String(formData.get("donem_bitis") ?? "");
   const aciklama = String(formData.get("aciklama") ?? "") || null;
-  const kdvOrani = Number(formData.get("kdv_orani") ?? 20);
-  const kesintiler = parseKesintiler(String(formData.get("kesintiler") ?? ""));
   const kalemler = parseKalemler(String(formData.get("kalemler") ?? ""));
 
   if (!donemBaslangic || !donemBitis) return { error: "Dönem başlangıç ve bitiş tarihleri gereklidir." };
@@ -57,8 +41,6 @@ export async function createHakedis(_prevState: ActionState, formData: FormData)
       donem_baslangic: donemBaslangic,
       donem_bitis: donemBitis,
       aciklama,
-      kdv_orani: kdvOrani,
-      kesintiler,
       status: gonder ? "incelemede" : "taslak",
       created_by: profile.id,
     })
@@ -90,8 +72,6 @@ export async function updateHakedis(_prevState: ActionState, formData: FormData)
   const donemBaslangic = String(formData.get("donem_baslangic") ?? "");
   const donemBitis = String(formData.get("donem_bitis") ?? "");
   const aciklama = String(formData.get("aciklama") ?? "") || null;
-  const kdvOrani = Number(formData.get("kdv_orani") ?? 20);
-  const kesintiler = parseKesintiler(String(formData.get("kesintiler") ?? ""));
   const kalemler = parseKalemler(String(formData.get("kalemler") ?? ""));
 
   if (!id) return { error: "Hakediş bulunamadı." };
@@ -102,8 +82,6 @@ export async function updateHakedis(_prevState: ActionState, formData: FormData)
       donem_baslangic: donemBaslangic,
       donem_bitis: donemBitis,
       aciklama,
-      kdv_orani: kdvOrani,
-      kesintiler,
       status: gonder ? "incelemede" : "taslak",
     })
     .eq("id", id);

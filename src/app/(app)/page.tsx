@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Building2, Clock, FileCheck2, FileWarning, Wallet } from "lucide-react";
+import { Building2, Clock, FileCheck2, FileStack, FileWarning } from "lucide-react";
 
 import { requireProfile } from "@/lib/auth";
 import { getDashboardStats } from "@/lib/data/dashboard";
 import { DURUM_ETIKETLERI, ROL_ACIKLAMALARI, ROL_ETIKETLERI } from "@/lib/constants";
-import { formatPara, formatTarih } from "@/lib/format";
+import { formatTarih } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge, RevizyonUyarisi } from "@/components/hakedis/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -34,7 +34,12 @@ export default async function DashboardPage() {
     },
     profile.role === "admin"
       ? { label: "Kayıtlı Firma", value: stats.firmaSayisi ?? 0, icon: Building2, hint: "Aktif ve pasif firmalar" }
-      : { label: "Onaylanan Toplam", value: formatPara(stats.toplamOnaylananTutar), icon: Wallet, hint: "Net tutar toplamı" },
+      : {
+          label: "Toplam Hakediş",
+          value: Object.values(stats.durumSayilari).reduce((a, b) => a + b, 0),
+          icon: FileStack,
+          hint: "Tüm durumlar dahil",
+        },
   ];
 
   return (
@@ -76,7 +81,6 @@ export default async function DashboardPage() {
                     <TableHead>Firma</TableHead>
                     <TableHead>No</TableHead>
                     <TableHead>Dönem</TableHead>
-                    <TableHead>Net Tutar</TableHead>
                     <TableHead>Durum</TableHead>
                     <TableHead />
                   </TableRow>
@@ -89,7 +93,6 @@ export default async function DashboardPage() {
                       <TableCell>
                         {formatTarih(h.donem_baslangic)} – {formatTarih(h.donem_bitis)}
                       </TableCell>
-                      <TableCell className="tabular-nums">{formatPara(h.net_tutar)}</TableCell>
                       <TableCell className="flex flex-wrap items-center gap-1.5">
                         <StatusBadge status={h.status} />
                         <RevizyonUyarisi sayi={h.revizyon_sayisi} />

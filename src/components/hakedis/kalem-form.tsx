@@ -14,7 +14,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -72,11 +71,6 @@ export function KalemForm({ schema, name, defaultItems, readOnly }: KalemFormPro
     }
     return [emptyRow()];
   });
-
-  const total = useMemo(
-    () => rows.reduce((sum, row) => sum + computeRowTutar(schema, row), 0),
-    [rows, schema],
-  );
 
   const payload = useMemo(
     () =>
@@ -208,14 +202,6 @@ export function KalemForm({ schema, name, defaultItems, readOnly }: KalemFormPro
               </TableRow>
             ))}
           </TableBody>
-          <TableFooter>
-            <TableRow>
-              <TableCell colSpan={schema.fields.length + (readOnly ? 0 : 1)} className="text-right font-medium">
-                Kalemler Toplamı
-              </TableCell>
-              <TableCell className="font-semibold tabular-nums">{formatPara(total)}</TableCell>
-            </TableRow>
-          </TableFooter>
         </Table>
       </div>
 

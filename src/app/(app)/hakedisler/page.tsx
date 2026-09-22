@@ -4,7 +4,7 @@ import { requireProfile } from "@/lib/auth";
 import { listHakedisler } from "@/lib/data/hakedisler";
 import type { HakedisStatus } from "@/types/database";
 import { DURUM_ETIKETLERI } from "@/lib/constants";
-import { formatPara, formatTarih } from "@/lib/format";
+import { formatTarih } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge, RevizyonUyarisi } from "@/components/hakedis/status-badge";
@@ -62,7 +62,6 @@ export default async function HakedislerPage(props: PageProps<"/hakedisler">) {
                     <TableHead>Firma</TableHead>
                     <TableHead>No</TableHead>
                     <TableHead>Dönem</TableHead>
-                    <TableHead>Net Tutar</TableHead>
                     <TableHead>Durum</TableHead>
                     <TableHead />
                   </TableRow>
@@ -80,7 +79,6 @@ export default async function HakedislerPage(props: PageProps<"/hakedisler">) {
                       <TableCell>
                         {formatTarih(h.donem_baslangic)} – {formatTarih(h.donem_bitis)}
                       </TableCell>
-                      <TableCell className="tabular-nums">{formatPara(h.net_tutar)}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-1.5">
                           <StatusBadge status={h.status} />

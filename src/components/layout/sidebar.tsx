@@ -9,6 +9,7 @@ import {
   Home,
   Plus,
   Tag,
+  User,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -25,6 +26,7 @@ const ICONS: Record<NavItem["icon"], LucideIcon> = {
   tag: Tag,
   users: Users,
   clock: Clock,
+  user: User,
 };
 
 export function Sidebar({ role }: { role: UserRole }) {

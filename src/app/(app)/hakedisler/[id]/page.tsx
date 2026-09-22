@@ -6,7 +6,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getHakedisDetail } from "@/lib/data/hakedisler";
 import { DUZENLENEBILIR_DURUMLAR, HAREKET_ETIKETLERI, ROL_ETIKETLERI } from "@/lib/constants";
-import { formatPara, formatTarih, formatTarihSaat } from "@/lib/format";
+import { formatTarih, formatTarihSaat } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -18,36 +18,35 @@ import { EkYukleForm } from "@/components/hakedis/ek-yukle-form";
 
 export default async function HakedisDetayPage(props: PageProps<"/hakedisler/[id]">) {
   const { id } = await props.params;
-  const profile = await requireProfile();
-  const detail = await getHakedisDetail(id);
+  const [profile, detail] = await Promise.all([requireProfile(), getHakedisDetail(id)]);
 
   if (!detail) notFound();
 
   const { hakedis, company, kalemler, ekler, hareketler, olusturan, muhendis } = detail;
   const supabase = await createClient();
 
-  let muhendisYetkili = false;
-  if (profile.role === "muhendis") {
-    const { data } = await supabase
-      .from("muhendis_company_assignments")
-      .select("id")
-      .eq("muhendis_id", profile.id)
-      .eq("company_id", company.id)
-      .maybeSingle();
-    muhendisYetkili = !!data;
-  }
+  const [muhendisYetkiliData, ekSignedUrls] = await Promise.all([
+    profile.role === "muhendis"
+      ? supabase
+          .from("muhendis_company_assignments")
+          .select("id")
+          .eq("muhendis_id", profile.id)
+          .eq("company_id", company.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    Promise.all(
+      ekler.map(async (ek) => {
+        const { data } = await supabase.storage.from("hakedis-ekler").createSignedUrl(ek.storage_path, 60 * 30);
+        return { ...ek, url: data?.signedUrl ?? null };
+      }),
+    ),
+  ]);
+  const muhendisYetkili = !!muhendisYetkiliData.data;
 
   const firmaDuzenleyebilir =
     (profile.role === "firma" && profile.company_id === company.id) || profile.role === "admin";
   const gosterDuzenle = firmaDuzenleyebilir && DUZENLENEBILIR_DURUMLAR.includes(hakedis.status);
   const gosterMuhendisPaneli = profile.role === "muhendis" && muhendisYetkili && hakedis.status === "incelemede";
-
-  const ekSignedUrls = await Promise.all(
-    ekler.map(async (ek) => {
-      const { data } = await supabase.storage.from("hakedis-ekler").createSignedUrl(ek.storage_path, 60 * 30);
-      return { ...ek, url: data?.signedUrl ?? null };
-    }),
-  );
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-4">
@@ -101,19 +100,24 @@ export default async function HakedisDetayPage(props: PageProps<"/hakedisler/[id
 
         <Card>
           <CardHeader>
-            <CardTitle>Mali Özet</CardTitle>
+            <CardTitle>Detaylar</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2 text-sm">
-            <Ozet label="Kalemler Toplamı" value={formatPara(hakedis.ara_toplam)} />
-            {hakedis.kesintiler.map((k, i) => (
-              <Ozet key={i} label={k.ad} value={`- ${formatPara(k.tutar)}`} muted />
-            ))}
-            <Ozet label="Kesinti Toplamı" value={formatPara(hakedis.kesinti_toplam)} muted />
-            <Ozet label={`KDV (%${hakedis.kdv_orani})`} value={formatPara(hakedis.kdv_tutari)} />
-            <Separator />
-            <Ozet label="Net Tutar" value={formatPara(hakedis.net_tutar)} strong />
-            {hakedis.status === "onaylandi" && (
-              <Ozet label="Kümülatif Tutar" value={formatPara(hakedis.kumulatif_tutar)} strong />
+          <CardContent className="flex flex-col gap-3 text-sm">
+            <div className="flex flex-col gap-1">
+              <span className="text-muted-foreground">Firma</span>
+              <span className="font-medium">{company.name}</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-muted-foreground">Dönem</span>
+              <span>
+                {formatTarih(hakedis.donem_baslangic)} – {formatTarih(hakedis.donem_bitis)}
+              </span>
+            </div>
+            {hakedis.aciklama && (
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground">Açıklama</span>
+                <span>{hakedis.aciklama}</span>
+              </div>
             )}
             <Separator />
             <div className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -187,25 +191,6 @@ export default async function HakedisDetayPage(props: PageProps<"/hakedisler/[id
           </ol>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-function Ozet({
-  label,
-  value,
-  muted,
-  strong,
-}: {
-  label: string;
-  value: string;
-  muted?: boolean;
-  strong?: boolean;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className={muted ? "text-muted-foreground" : ""}>{label}</span>
-      <span className={strong ? "text-base font-semibold tabular-nums" : "tabular-nums"}>{value}</span>
     </div>
   );
 }

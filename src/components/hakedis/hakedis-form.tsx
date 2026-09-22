@@ -3,7 +3,6 @@
 import { useActionState, useState } from "react";
 
 import type { Company, Hakedis, HakedisKalemi } from "@/types/database";
-import { KDV_VARSAYILAN } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +16,6 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KalemForm } from "./kalem-form";
-import { KesintiEditor } from "./kesinti-editor";
 
 type ActionState = { error?: string; success?: boolean } | undefined;
 type FormAction = (state: ActionState, formData: FormData) => Promise<ActionState>;
@@ -43,7 +41,7 @@ export function HakedisForm({ action, company, companies, defaultHakedis, defaul
         <CardHeader>
           <CardTitle>Hakediş Bilgileri</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {companies ? (
             <div className="flex flex-col gap-1.5 sm:col-span-2">
               <Label htmlFor="company_id">Firma</Label>
@@ -95,17 +93,7 @@ export function HakedisForm({ action, company, companies, defaultHakedis, defaul
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="kdv_orani">KDV Oranı (%)</Label>
-            <Input
-              id="kdv_orani"
-              name="kdv_orani"
-              type="number"
-              step="any"
-              defaultValue={defaultHakedis?.kdv_orani ?? KDV_VARSAYILAN}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5 sm:col-span-3">
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
             <Label htmlFor="aciklama">Açıklama (opsiyonel)</Label>
             <Textarea id="aciklama" name="aciklama" defaultValue={defaultHakedis?.aciklama ?? ""} />
           </div>
@@ -123,15 +111,6 @@ export function HakedisForm({ action, company, companies, defaultHakedis, defaul
             name="kalemler"
             defaultItems={selectedCompany.id === company.id ? defaultKalemler : undefined}
           />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Kesintiler</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <KesintiEditor name="kesintiler" defaultValue={defaultHakedis?.kesintiler} />
         </CardContent>
       </Card>
 

@@ -15,14 +15,14 @@ export default async function FirmaDetayPage(props: PageProps<"/admin/firmalar/[
   const { id } = await props.params;
   await requireRole("admin");
 
-  const [company, allTags] = await Promise.all([getCompanyWithTags(id), listTags()]);
-  if (!company) notFound();
-
   const supabase = await createClient();
-  const [{ data: muhendisler }, { data: atamalar }] = await Promise.all([
+  const [company, allTags, { data: muhendisler }, { data: atamalar }] = await Promise.all([
+    getCompanyWithTags(id),
+    listTags(),
     supabase.from("profiles").select("*").eq("role", "muhendis").order("full_name"),
     supabase.from("muhendis_company_assignments").select("muhendis_id").eq("company_id", id),
   ]);
+  if (!company) notFound();
 
   const selectedTagIds = company.company_tags.map((ct) => ct.tags.id);
   const assignedIds = (atamalar ?? []).map((a) => a.muhendis_id);
