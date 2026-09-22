@@ -33,7 +33,7 @@ export async function createCompany(_prevState: ActionState, formData: FormData)
 
   if (error || !data) return { error: "Firma oluşturulamadı: " + (error?.message ?? "") };
 
-  revalidatePath("/admin/firmalar");
+  revalidatePath("/admin");
   redirect(`/admin/firmalar/${data.id}`);
 }
 
@@ -63,7 +63,7 @@ export async function updateCompanyInfo(_prevState: ActionState, formData: FormD
   if (error) return { error: "Firma güncellenemedi: " + error.message };
 
   revalidatePath(`/admin/firmalar/${id}`);
-  revalidatePath("/admin/firmalar");
+  revalidatePath("/admin");
   return { success: true };
 }
 
@@ -110,7 +110,7 @@ export async function setCompanyTags(_prevState: ActionState, formData: FormData
   }
 
   revalidatePath(`/admin/firmalar/${id}`);
-  revalidatePath("/admin/firmalar");
+  revalidatePath("/admin");
   return { success: true };
 }
 

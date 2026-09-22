@@ -45,7 +45,7 @@ export async function inviteUser(_prevState: ActionState, formData: FormData): P
     await admin.from("profiles").update({ phone }).eq("id", data.user.id);
   }
 
-  revalidatePath("/admin/kullanicilar");
+  revalidatePath("/admin");
   return { success: true };
 }
 
@@ -96,6 +96,6 @@ export async function updateUser(_prevState: ActionState, formData: FormData): P
 
   if (error) return { error: "Kullanıcı güncellenemedi: " + error.message };
 
-  revalidatePath("/admin/kullanicilar");
+  revalidatePath("/admin");
   return { success: true };
 }

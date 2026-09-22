@@ -8,9 +8,7 @@ import {
   FileText,
   Home,
   Plus,
-  Tag,
   User,
-  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,8 +21,6 @@ const ICONS: Record<NavItem["icon"], LucideIcon> = {
   "file-text": FileText,
   plus: Plus,
   building: Building2,
-  tag: Tag,
-  users: Users,
   clock: Clock,
   user: User,
 };

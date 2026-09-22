@@ -18,7 +18,7 @@ export async function createTag(_prevState: ActionState, formData: FormData): Pr
   const { error } = await supabase.from("tags").insert({ name, color });
   if (error) return { error: error.code === "23505" ? "Bu isimde bir etiket zaten var." : error.message };
 
-  revalidatePath("/admin/etiketler");
+  revalidatePath("/admin");
   return { success: true };
 }
 
@@ -30,6 +30,6 @@ export async function deleteTag(_prevState: ActionState, formData: FormData): Pr
   const { error } = await supabase.from("tags").delete().eq("id", id);
   if (error) return { error: "Etiket silinemedi: " + error.message };
 
-  revalidatePath("/admin/etiketler");
+  revalidatePath("/admin");
   return { success: true };
 }
