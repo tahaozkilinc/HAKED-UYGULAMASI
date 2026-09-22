@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { requireProfile } from "@/lib/auth";
 import { getHakedisDetail } from "@/lib/data/hakedisler";
-import { listMuhendislerForCompany } from "@/lib/data/companies";
+import { listAllMuhendisler } from "@/lib/data/companies";
 import { DUZENLENEBILIR_DURUMLAR } from "@/lib/constants";
 import { HakedisForm } from "@/components/hakedis/hakedis-form";
 import { updateHakedis } from "../../actions";
@@ -21,7 +21,7 @@ export default async function HakedisDuzenlePage(props: PageProps<"/hakedisler/[
     redirect(`/hakedisler/${id}`);
   }
 
-  const muhendisler = await listMuhendislerForCompany(detail.company.id);
+  const muhendisler = await listAllMuhendisler();
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4">

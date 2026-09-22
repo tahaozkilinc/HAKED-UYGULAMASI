@@ -25,28 +25,18 @@ export default async function HakedisDetayPage(props: PageProps<"/hakedisler/[id
   const { hakedis, company, kalemler, ekler, hareketler, olusturan, muhendis } = detail;
   const supabase = await createClient();
 
-  const [muhendisYetkiliData, ekSignedUrls] = await Promise.all([
-    profile.role === "muhendis"
-      ? supabase
-          .from("muhendis_company_assignments")
-          .select("id")
-          .eq("muhendis_id", profile.id)
-          .eq("company_id", company.id)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-    Promise.all(
-      ekler.map(async (ek) => {
-        const { data } = await supabase.storage.from("hakedis-ekler").createSignedUrl(ek.storage_path, 60 * 30);
-        return { ...ek, url: data?.signedUrl ?? null };
-      }),
-    ),
-  ]);
-  const muhendisYetkili = !!muhendisYetkiliData.data;
+  const ekSignedUrls = await Promise.all(
+    ekler.map(async (ek) => {
+      const { data } = await supabase.storage.from("hakedis-ekler").createSignedUrl(ek.storage_path, 60 * 30);
+      return { ...ek, url: data?.signedUrl ?? null };
+    }),
+  );
+  const muhendisYetkili = profile.role === "muhendis" && hakedis.muhendis_id === profile.id;
 
   const firmaDuzenleyebilir =
     (profile.role === "firma" && profile.company_id === company.id) || profile.role === "admin";
   const gosterDuzenle = firmaDuzenleyebilir && DUZENLENEBILIR_DURUMLAR.includes(hakedis.status);
-  const gosterMuhendisPaneli = profile.role === "muhendis" && muhendisYetkili && hakedis.status === "incelemede";
+  const gosterMuhendisPaneli = muhendisYetkili && hakedis.status === "incelemede";
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-4">

@@ -113,27 +113,3 @@ export async function setCompanyTags(_prevState: ActionState, formData: FormData
   revalidatePath("/admin");
   return { success: true };
 }
-
-export async function setMuhendisAssignments(_prevState: ActionState, formData: FormData): Promise<ActionState> {
-  await requireRole("admin");
-  const supabase = await createClient();
-
-  const companyId = String(formData.get("company_id") ?? "");
-  const muhendisIds = formData.getAll("muhendis_ids").map(String);
-
-  const { error: deleteError } = await supabase
-    .from("muhendis_company_assignments")
-    .delete()
-    .eq("company_id", companyId);
-  if (deleteError) return { error: "Atamalar güncellenemedi: " + deleteError.message };
-
-  if (muhendisIds.length > 0) {
-    const { error: insertError } = await supabase
-      .from("muhendis_company_assignments")
-      .insert(muhendisIds.map((muhendisId) => ({ company_id: companyId, muhendis_id: muhendisId })));
-    if (insertError) return { error: "Atamalar güncellenemedi: " + insertError.message };
-  }
-
-  revalidatePath(`/admin/firmalar/${companyId}`);
-  return { success: true };
-}

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { listMuhendislerByCompany, listMuhendislerForCompany } from "@/lib/data/companies";
+import { listAllMuhendisler } from "@/lib/data/companies";
 import type { Company } from "@/types/database";
 import { HakedisForm } from "@/components/hakedis/hakedis-form";
 import { createHakedis } from "../actions";
@@ -19,7 +19,7 @@ export default async function YeniHakedisPage() {
     }
     const [{ data: company }, muhendisler] = await Promise.all([
       supabase.from("companies").select("*").eq("id", profile.company_id).single(),
-      listMuhendislerForCompany(profile.company_id),
+      listAllMuhendisler(),
     ]);
 
     if (!company) {
@@ -34,9 +34,9 @@ export default async function YeniHakedisPage() {
     );
   }
 
-  const [{ data: companies }, muhendislerByCompany] = await Promise.all([
+  const [{ data: companies }, muhendisler] = await Promise.all([
     supabase.from("companies").select("*").eq("is_active", true).order("name"),
-    listMuhendislerByCompany(),
+    listAllMuhendisler(),
   ]);
   const typedCompanies = (companies ?? []) as Company[];
 
@@ -51,8 +51,7 @@ export default async function YeniHakedisPage() {
         action={createHakedis}
         company={typedCompanies[0]}
         companies={typedCompanies}
-        muhendisler={muhendislerByCompany[typedCompanies[0].id] ?? []}
-        muhendislerByCompany={muhendislerByCompany}
+        muhendisler={muhendisler}
       />
     </div>
   );

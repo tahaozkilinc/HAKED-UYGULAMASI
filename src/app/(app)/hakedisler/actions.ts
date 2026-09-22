@@ -70,13 +70,13 @@ export async function createHakedis(_prevState: ActionState, formData: FormData)
   if (!donemBaslangic || !donemBitis) return { error: "Dönem başlangıç ve bitiş tarihleri gereklidir." };
   if (!muhendisId) return { error: "Lütfen ilgili mühendisi seçin." };
 
-  const { data: atama } = await supabase
-    .from("muhendis_company_assignments")
+  const { data: secilenMuhendis } = await supabase
+    .from("profiles")
     .select("id")
-    .eq("company_id", companyId)
-    .eq("muhendis_id", muhendisId)
+    .eq("id", muhendisId)
+    .eq("role", "muhendis")
     .maybeSingle();
-  if (!atama) return { error: "Seçilen mühendis bu firmaya atanmamış." };
+  if (!secilenMuhendis) return { error: "Seçilen kullanıcı bir mühendis değil." };
 
   const { data: hakedis, error } = await supabase
     .from("hakedisler")
@@ -129,22 +129,14 @@ export async function updateHakedis(_prevState: ActionState, formData: FormData)
   const donemBaslangic = String(formData.get("donem_baslangic") ?? "");
   const donemBitis = String(formData.get("donem_bitis") ?? "");
   const aciklama = String(formData.get("aciklama") ?? "") || null;
-  const muhendisId = String(formData.get("muhendis_id") ?? "") || null;
   const kalemler = parseKalemler(String(formData.get("kalemler") ?? ""));
 
   if (!id) return { error: "Hakediş bulunamadı." };
-  if (!muhendisId) return { error: "Lütfen ilgili mühendisi seçin." };
 
-  const { data: mevcut } = await supabase.from("hakedisler").select("company_id, hakedis_no").eq("id", id).single();
+  // İlgili mühendis sadece hakediş oluşturulurken belirlenir; form bu
+  // aşamada muhendis_id göndermiyor, dolayısıyla burada dokunulmuyor.
+  const { data: mevcut } = await supabase.from("hakedisler").select("company_id, hakedis_no, muhendis_id").eq("id", id).single();
   if (!mevcut) return { error: "Hakediş bulunamadı." };
-
-  const { data: atama } = await supabase
-    .from("muhendis_company_assignments")
-    .select("id")
-    .eq("company_id", mevcut.company_id)
-    .eq("muhendis_id", muhendisId)
-    .maybeSingle();
-  if (!atama) return { error: "Seçilen mühendis bu firmaya atanmamış." };
 
   const { error: updateError } = await supabase
     .from("hakedisler")
@@ -152,7 +144,6 @@ export async function updateHakedis(_prevState: ActionState, formData: FormData)
       donem_baslangic: donemBaslangic,
       donem_bitis: donemBitis,
       aciklama,
-      muhendis_id: muhendisId,
       status: gonder ? "incelemede" : "taslak",
     })
     .eq("id", id);
@@ -167,11 +158,11 @@ export async function updateHakedis(_prevState: ActionState, formData: FormData)
     if (kalemError) return { error: "Kalemler kaydedilemedi: " + kalemError.message };
   }
 
-  if (gonder) {
+  if (gonder && mevcut.muhendis_id) {
     await muhendisAtamaMailiGonder(
       supabase,
       id,
-      muhendisId,
+      mevcut.muhendis_id,
       mevcut.company_id,
       mevcut.hakedis_no,
       donemBaslangic,
@@ -200,7 +191,7 @@ export async function muhendisKarar(_prevState: ActionState, formData: FormData)
   if (karar === "onayla") {
     const { error } = await supabase
       .from("hakedisler")
-      .update({ status: "onaylandi", karar_veren_id: user?.id, muhendis_id: user?.id })
+      .update({ status: "onaylandi", karar_veren_id: user?.id })
       .eq("id", id);
     if (error) return { error: "Onaylanamadı: " + error.message };
   } else if (karar === "revizyon") {
@@ -211,14 +202,13 @@ export async function muhendisKarar(_prevState: ActionState, formData: FormData)
         status: "revizyon_istendi",
         son_revizyon_notu: not,
         karar_veren_id: user?.id,
-        muhendis_id: user?.id,
       })
       .eq("id", id);
     if (error) return { error: "Revizyon talebi gönderilemedi: " + error.message };
   } else if (karar === "sil") {
     const { error } = await supabase
       .from("hakedisler")
-      .update({ status: "silindi", karar_veren_id: user?.id, muhendis_id: user?.id, son_revizyon_notu: not })
+      .update({ status: "silindi", karar_veren_id: user?.id, son_revizyon_notu: not })
       .eq("id", id);
     if (error) return { error: "Hakediş silinemedi: " + error.message };
   } else {

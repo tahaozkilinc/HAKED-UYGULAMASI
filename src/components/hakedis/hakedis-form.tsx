@@ -26,9 +26,8 @@ interface HakedisFormProps {
   company: Company;
   /** Sadece admin akışı: firma seçimi değiştiğinde kalem şeması da değişir. */
   companies?: Company[];
+  /** Sistemdeki tüm mühendisler; hakediş oluştururken bunlardan biri seçilir. */
   muhendisler: MuhendisOzet[];
-  /** Sadece admin akışı: firma seçimi değiştiğinde mühendis listesi de değişir. */
-  muhendislerByCompany?: Record<string, MuhendisOzet[]>;
   defaultHakedis?: Hakedis;
   defaultKalemler?: HakedisKalemi[];
 }
@@ -38,17 +37,18 @@ export function HakedisForm({
   company,
   companies,
   muhendisler,
-  muhendislerByCompany,
   defaultHakedis,
   defaultKalemler,
 }: HakedisFormProps) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const [selectedCompany, setSelectedCompany] = useState(company);
 
-  const secilebilirMuhendisler = useMemo(() => {
-    if (selectedCompany.id === company.id) return muhendisler;
-    return muhendislerByCompany?.[selectedCompany.id] ?? [];
-  }, [selectedCompany, company.id, muhendisler, muhendislerByCompany]);
+  // Mühendis, hakediş oluşturulurken bir kez seçilir; hakedişi açan firma
+  // daha sonra bunu değiştiremez (geriye dönük düzeltme yapılamaz).
+  const mevcutMuhendis = useMemo(
+    () => muhendisler.find((m) => m.id === defaultHakedis?.muhendis_id),
+    [muhendisler, defaultHakedis?.muhendis_id],
+  );
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -112,27 +112,36 @@ export function HakedisForm({
 
           <div className="flex flex-col gap-1.5 sm:col-span-2">
             <Label htmlFor="muhendis_id">İlgili Mühendis *</Label>
-            <Select
-              name="muhendis_id"
-              key={selectedCompany.id}
-              defaultValue={selectedCompany.id === company.id ? (defaultHakedis?.muhendis_id ?? undefined) : undefined}
-              required
-            >
-              <SelectTrigger id="muhendis_id">
-                <SelectValue placeholder="Mühendis seçin" />
-              </SelectTrigger>
-              <SelectContent>
-                {secilebilirMuhendisler.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.full_name || m.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {secilebilirMuhendisler.length === 0 && (
-              <p className="text-xs text-destructive">
-                Bu firma için atanmış mühendis yok. Önce Yönetim → Firmalar sayfasından bir mühendis atayın.
-              </p>
+            {defaultHakedis ? (
+              <>
+                <p className="flex h-9 items-center rounded-md border bg-muted px-3 text-sm">
+                  {mevcutMuhendis?.full_name || mevcutMuhendis?.email || "Mühendis bulunamadı"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  İlgili mühendis hakediş oluşturulurken belirlenir, sonradan değiştirilemez.
+                </p>
+              </>
+            ) : (
+              <>
+                <Select name="muhendis_id" required>
+                  <SelectTrigger id="muhendis_id">
+                    <SelectValue placeholder="Mühendis seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {muhendisler.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.full_name || m.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {muhendisler.length === 0 && (
+                  <p className="text-xs text-destructive">
+                    Sistemde mühendis rolünde kullanıcı yok. Önce Yönetim → Kullanıcılar sayfasından bir mühendis
+                    ekleyin.
+                  </p>
+                )}
+              </>
             )}
           </div>
 

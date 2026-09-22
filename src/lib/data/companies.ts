@@ -9,32 +9,16 @@ export interface CompanyWithTags extends Company {
 
 export type MuhendisOzet = Pick<Profile, "id" | "full_name" | "email">;
 
-export async function listMuhendislerForCompany(companyId: string): Promise<MuhendisOzet[]> {
+/** Sistemdeki tüm mühendisler — hakediş açan firma bunlardan birini seçer. */
+export async function listAllMuhendisler(): Promise<MuhendisOzet[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("muhendis_company_assignments")
-    .select("profiles(id, full_name, email)")
-    .eq("company_id", companyId);
+    .from("profiles")
+    .select("id, full_name, email")
+    .eq("role", "muhendis")
+    .order("full_name");
   if (error) throw error;
-  return ((data ?? []) as unknown as { profiles: MuhendisOzet }[])
-    .map((row) => row.profiles)
-    .filter(Boolean);
-}
-
-/** Admin akışı: tüm firmalar için atanmış mühendisleri tek sorguda getirir. */
-export async function listMuhendislerByCompany(): Promise<Record<string, MuhendisOzet[]>> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("muhendis_company_assignments")
-    .select("company_id, profiles(id, full_name, email)");
-  if (error) throw error;
-
-  const map: Record<string, MuhendisOzet[]> = {};
-  for (const row of (data ?? []) as unknown as { company_id: string; profiles: MuhendisOzet }[]) {
-    if (!row.profiles) continue;
-    (map[row.company_id] ??= []).push(row.profiles);
-  }
-  return map;
+  return (data ?? []) as MuhendisOzet[];
 }
 
 export async function listCompaniesWithTags(): Promise<CompanyWithTags[]> {
