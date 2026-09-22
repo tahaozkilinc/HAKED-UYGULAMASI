@@ -1,0 +1,211 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { FileText } from "lucide-react";
+
+import { requireProfile } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { getHakedisDetail } from "@/lib/data/hakedisler";
+import { DUZENLENEBILIR_DURUMLAR, HAREKET_ETIKETLERI, ROL_ETIKETLERI } from "@/lib/constants";
+import { formatPara, formatTarih, formatTarihSaat } from "@/lib/format";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { StatusBadge, RevizyonUyarisi } from "@/components/hakedis/status-badge";
+import { KalemForm } from "@/components/hakedis/kalem-form";
+import { MuhendisKararPanel } from "@/components/hakedis/muhendis-karar-panel";
+import { YorumForm } from "@/components/hakedis/yorum-form";
+import { EkYukleForm } from "@/components/hakedis/ek-yukle-form";
+
+export default async function HakedisDetayPage(props: PageProps<"/hakedisler/[id]">) {
+  const { id } = await props.params;
+  const profile = await requireProfile();
+  const detail = await getHakedisDetail(id);
+
+  if (!detail) notFound();
+
+  const { hakedis, company, kalemler, ekler, hareketler, olusturan, muhendis } = detail;
+  const supabase = await createClient();
+
+  let muhendisYetkili = false;
+  if (profile.role === "muhendis") {
+    const { data } = await supabase
+      .from("muhendis_company_assignments")
+      .select("id")
+      .eq("muhendis_id", profile.id)
+      .eq("company_id", company.id)
+      .maybeSingle();
+    muhendisYetkili = !!data;
+  }
+
+  const firmaDuzenleyebilir =
+    (profile.role === "firma" && profile.company_id === company.id) || profile.role === "admin";
+  const gosterDuzenle = firmaDuzenleyebilir && DUZENLENEBILIR_DURUMLAR.includes(hakedis.status);
+  const gosterMuhendisPaneli = profile.role === "muhendis" && muhendisYetkili && hakedis.status === "incelemede";
+
+  const ekSignedUrls = await Promise.all(
+    ekler.map(async (ek) => {
+      const { data } = await supabase.storage.from("hakedis-ekler").createSignedUrl(ek.storage_path, 60 * 30);
+      return { ...ek, url: data?.signedUrl ?? null };
+    }),
+  );
+
+  return (
+    <div className="mx-auto flex max-w-5xl flex-col gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold">
+              {company.name} — Hakediş #{hakedis.hakedis_no}
+            </h1>
+            <StatusBadge status={hakedis.status} />
+            <RevizyonUyarisi sayi={hakedis.revizyon_sayisi} />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Dönem: {formatTarih(hakedis.donem_baslangic)} – {formatTarih(hakedis.donem_bitis)}
+          </p>
+        </div>
+        {gosterDuzenle && (
+          <Button asChild>
+            <Link href={`/hakedisler/${id}/duzenle`}>Düzenle</Link>
+          </Button>
+        )}
+      </div>
+
+      {hakedis.status === "revizyon_istendi" && hakedis.son_revizyon_notu && (
+        <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+          <p className="font-medium">Mühendisin revizyon notu:</p>
+          <p className="text-muted-foreground">{hakedis.son_revizyon_notu}</p>
+        </div>
+      )}
+
+      {gosterMuhendisPaneli && (
+        <Card className="border-primary/30">
+          <CardHeader>
+            <CardTitle>Mühendis Kararı</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MuhendisKararPanel id={id} />
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Hakediş Kalemleri</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <KalemForm schema={company.hakedis_schema} name="_readonly" defaultItems={kalemler} readOnly />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Mali Özet</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <Ozet label="Kalemler Toplamı" value={formatPara(hakedis.ara_toplam)} />
+            {hakedis.kesintiler.map((k, i) => (
+              <Ozet key={i} label={k.ad} value={`- ${formatPara(k.tutar)}`} muted />
+            ))}
+            <Ozet label="Kesinti Toplamı" value={formatPara(hakedis.kesinti_toplam)} muted />
+            <Ozet label={`KDV (%${hakedis.kdv_orani})`} value={formatPara(hakedis.kdv_tutari)} />
+            <Separator />
+            <Ozet label="Net Tutar" value={formatPara(hakedis.net_tutar)} strong />
+            {hakedis.status === "onaylandi" && (
+              <Ozet label="Kümülatif Tutar" value={formatPara(hakedis.kumulatif_tutar)} strong />
+            )}
+            <Separator />
+            <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+              <span>Oluşturan: {olusturan?.full_name || olusturan?.email || "-"}</span>
+              {muhendis && (
+                <span>
+                  Karar veren mühendis: {muhendis.full_name || muhendis.email}
+                  {hakedis.karar_tarihi && ` · ${formatTarihSaat(hakedis.karar_tarihi)}`}
+                </span>
+              )}
+              <span>Oluşturulma: {formatTarihSaat(hakedis.created_at)}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Ekler</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {ekSignedUrls.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Henüz dosya eklenmedi.</p>
+          ) : (
+            <ul className="flex flex-col gap-1.5">
+              {ekSignedUrls.map((ek) => (
+                <li key={ek.id} className="flex items-center gap-2 text-sm">
+                  <FileText className="size-4 text-muted-foreground" />
+                  {ek.url ? (
+                    <a href={ek.url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                      {ek.dosya_adi}
+                    </a>
+                  ) : (
+                    <span>{ek.dosya_adi}</span>
+                  )}
+                  <span className="text-xs text-muted-foreground">{formatTarih(ek.created_at)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <EkYukleForm id={id} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Hareket Geçmişi</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <YorumForm id={id} />
+          <Separator />
+          <ol className="flex flex-col gap-3">
+            {hareketler.map((h) => (
+              <li key={h.id} className="flex gap-3 text-sm">
+                <div className="mt-1 size-2 shrink-0 rounded-full bg-primary" />
+                <div>
+                  <p>
+                    <span className="font-medium">{HAREKET_ETIKETLERI[h.islem_tipi]}</span>
+                    {h.profiles && (
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · {h.profiles.full_name} ({ROL_ETIKETLERI[h.profiles.role]})
+                      </span>
+                    )}
+                  </p>
+                  {h.aciklama && <p className="text-muted-foreground">{h.aciklama}</p>}
+                  <p className="text-xs text-muted-foreground">{formatTarihSaat(h.created_at)}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function Ozet({
+  label,
+  value,
+  muted,
+  strong,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+  strong?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className={muted ? "text-muted-foreground" : ""}>{label}</span>
+      <span className={strong ? "text-base font-semibold tabular-nums" : "tabular-nums"}>{value}</span>
+    </div>
+  );
+}
