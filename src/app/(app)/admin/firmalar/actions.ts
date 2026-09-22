@@ -92,6 +92,51 @@ export async function updateCompanySchema(_prevState: ActionState, formData: For
   return { success: true };
 }
 
+export async function updateCompanyLogo(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  await requireRole("admin");
+  const supabase = await createClient();
+
+  const id = String(formData.get("id") ?? "");
+  const file = formData.get("logo") as File | null;
+  if (!id) return { error: "Geçersiz istek." };
+  if (!file || file.size === 0) return { error: "Logo dosyası seçilmedi." };
+  if (!file.type.startsWith("image/")) return { error: "Sadece resim dosyası yükleyebilirsiniz." };
+
+  const uzanti = file.name.split(".").pop() || "png";
+  const path = `${id}/logo-${Date.now()}.${uzanti}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("firma-logolari")
+    .upload(path, file, { upsert: true });
+  if (uploadError) return { error: "Logo yüklenemedi: " + uploadError.message };
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("firma-logolari").getPublicUrl(path);
+
+  const { error } = await supabase.from("companies").update({ logo_url: publicUrl }).eq("id", id);
+  if (error) return { error: "Logo kaydedilemedi: " + error.message };
+
+  revalidatePath(`/admin/firmalar/${id}`);
+  revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function removeCompanyLogo(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  await requireRole("admin");
+  const supabase = await createClient();
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { error: "Geçersiz istek." };
+
+  const { error } = await supabase.from("companies").update({ logo_url: null }).eq("id", id);
+  if (error) return { error: "Logo kaldırılamadı: " + error.message };
+
+  revalidatePath(`/admin/firmalar/${id}`);
+  revalidatePath("/admin");
+  return { success: true };
+}
+
 export async function setCompanyTags(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   await requireRole("admin");
   const supabase = await createClient();

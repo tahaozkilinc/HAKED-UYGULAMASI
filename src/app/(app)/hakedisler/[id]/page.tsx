@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FileText } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -53,11 +53,18 @@ export default async function HakedisDetayPage(props: PageProps<"/hakedisler/[id
             Dönem: {formatTarih(hakedis.donem_baslangic)} – {formatTarih(hakedis.donem_bitis)}
           </p>
         </div>
-        {gosterDuzenle && (
-          <Button asChild>
-            <Link href={`/hakedisler/${id}/duzenle`}>Düzenle</Link>
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <a href={`/hakedisler/${id}/pdf`}>
+              <Download className="size-4" /> PDF İndir
+            </a>
           </Button>
-        )}
+          {gosterDuzenle && (
+            <Button asChild>
+              <Link href={`/hakedisler/${id}/duzenle`}>Düzenle</Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {hakedis.status === "revizyon_istendi" && hakedis.son_revizyon_notu && (

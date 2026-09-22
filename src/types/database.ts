@@ -86,6 +86,7 @@ export interface Company {
   is_active: boolean;
   hakedis_schema: HakedisSchema;
   notes: string | null;
+  logo_url: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -18,6 +18,8 @@ export interface HakedisListItem extends Hakedis {
 export async function listHakedisler(filters?: {
   status?: HakedisStatus;
   companyId?: string;
+  baslangic?: string;
+  bitis?: string;
 }): Promise<HakedisListItem[]> {
   const supabase = await createClient();
   let query = supabase
@@ -27,6 +29,8 @@ export async function listHakedisler(filters?: {
 
   if (filters?.status) query = query.eq("status", filters.status);
   if (filters?.companyId) query = query.eq("company_id", filters.companyId);
+  if (filters?.baslangic) query = query.gte("created_at", filters.baslangic);
+  if (filters?.bitis) query = query.lte("created_at", filters.bitis);
 
   const { data, error } = await query;
   if (error) throw error;
