@@ -174,7 +174,9 @@ export async function ekYukle(_prevState: ActionState, formData: FormData): Prom
   const supabase = await createClient();
 
   const id = String(formData.get("id") ?? "");
-  const file = formData.get("dosya") as File | null;
+  const foto = formData.get("foto") as File | null;
+  const belge = formData.get("belge") as File | null;
+  const file = foto && foto.size > 0 ? foto : belge;
   if (!file || file.size === 0) return { error: "Dosya seçilmedi." };
 
   const path = `${id}/${Date.now()}-${file.name}`;

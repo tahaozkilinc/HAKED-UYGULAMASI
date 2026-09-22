@@ -1,18 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import { LogOut, Menu } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 import type { Profile } from "@/types/database";
 import { ROL_ETIKETLERI } from "@/lib/constants";
 import { signOut } from "@/app/login/actions";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Sidebar } from "./sidebar";
+import { MobileNav } from "./mobile-nav";
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -24,16 +19,7 @@ export function Topbar({ profile }: { profile: Profile }) {
   return (
     <header className="flex h-14 items-center justify-between border-b bg-card px-4">
       <div className="flex items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="size-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56 p-0">
-            <Sidebar role={profile.role} />
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <MobileNav role={profile.role} />
         <Link href="/" className="flex items-center gap-2 font-semibold">
           <Image src="/sunar-logo.png" alt="Sunar" width={96} height={44} className="h-6 w-auto" priority />
           <span className="hidden sm:inline text-muted-foreground font-normal">Hakediş Takip Sistemi</span>

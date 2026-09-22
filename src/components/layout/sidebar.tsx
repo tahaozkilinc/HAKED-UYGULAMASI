@@ -25,7 +25,7 @@ const ICONS: Record<NavItem["icon"], LucideIcon> = {
   user: User,
 };
 
-export function Sidebar({ role }: { role: UserRole }) {
+export function Sidebar({ role, onNavigate }: { role: UserRole; onNavigate?: () => void }) {
   const pathname = usePathname();
   const items = NAV_ITEMS.filter((item) => item.roles.includes(role));
 
@@ -39,6 +39,7 @@ export function Sidebar({ role }: { role: UserRole }) {
           <Link
             key={item.href + item.label}
             href={item.href}
+            onClick={onNavigate}
             className={cn(
               "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors",
               active
