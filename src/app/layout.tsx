@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hakediş Takip Sistemi",
+  title: "Sunar Hakediş Takip Sistemi",
   description: "Firma hakedişlerinin girişi, incelemesi ve onay sürecinin tek bir portaldan yönetimi.",
 };
 

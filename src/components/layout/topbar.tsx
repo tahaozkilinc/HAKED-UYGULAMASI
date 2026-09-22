@@ -1,4 +1,6 @@
-import { Building2, LogOut, Menu } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { LogOut, Menu } from "lucide-react";
 
 import type { Profile } from "@/types/database";
 import { ROL_ETIKETLERI } from "@/lib/constants";
@@ -32,10 +34,10 @@ export function Topbar({ profile }: { profile: Profile }) {
             <Sidebar role={profile.role} />
           </DropdownMenuContent>
         </DropdownMenu>
-        <div className="flex items-center gap-2 font-semibold">
-          <Building2 className="size-5 text-primary" />
-          <span className="hidden sm:inline">Hakediş Takip Sistemi</span>
-        </div>
+        <Link href="/" className="flex items-center gap-2 font-semibold">
+          <Image src="/sunar-logo.png" alt="Sunar" width={96} height={44} className="h-6 w-auto" priority />
+          <span className="hidden sm:inline text-muted-foreground font-normal">Hakediş Takip Sistemi</span>
+        </Link>
       </div>
 
       <div className="flex items-center gap-3">

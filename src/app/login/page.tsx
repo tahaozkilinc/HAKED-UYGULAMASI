@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { Building2 } from "lucide-react";
+import Image from "next/image";
 
 import { LoginForm } from "./login-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,9 +9,14 @@ export default function LoginPage() {
     <div className="flex min-h-svh items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="items-center text-center">
-          <div className="mb-2 flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Building2 className="size-6" />
-          </div>
+          <Image
+            src="/sunar-logo.png"
+            alt="Sunar"
+            width={200}
+            height={92}
+            priority
+            className="mb-2 h-auto w-44"
+          />
           <CardTitle className="text-xl">Hakediş Takip Sistemi</CardTitle>
           <CardDescription>Devam etmek için giriş yapın</CardDescription>
         </CardHeader>
