@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
+import { sendHakedisAtamaMaili } from "@/lib/email";
 
 type ActionState = { error?: string; success?: boolean } | undefined;
 
@@ -19,6 +20,39 @@ function parseKalemler(raw: string | null): { sira_no: number; data: Record<stri
   }
 }
 
+function baseUrl(): string {
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+}
+
+async function muhendisAtamaMailiGonder(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  hakedisId: string,
+  muhendisId: string,
+  companyId: string,
+  hakedisNo: number,
+  donemBaslangic: string,
+  donemBitis: string,
+) {
+  const [{ data: muhendis }, { data: company }] = await Promise.all([
+    supabase.from("profiles").select("full_name, email").eq("id", muhendisId).single(),
+    supabase.from("companies").select("name").eq("id", companyId).single(),
+  ]);
+
+  if (!muhendis?.email) return;
+
+  await sendHakedisAtamaMaili({
+    muhendisEmail: muhendis.email,
+    muhendisAdi: muhendis.full_name ?? "",
+    firmaAdi: (company as { name: string } | null)?.name ?? "",
+    hakedisNo,
+    donemBaslangic,
+    donemBitis,
+    hakedisUrl: `${baseUrl()}/hakedisler/${hakedisId}`,
+  });
+}
+
 export async function createHakedis(_prevState: ActionState, formData: FormData): Promise<ActionState> {
   const profile = await requireProfile();
   const supabase = await createClient();
@@ -30,9 +64,19 @@ export async function createHakedis(_prevState: ActionState, formData: FormData)
   const donemBaslangic = String(formData.get("donem_baslangic") ?? "");
   const donemBitis = String(formData.get("donem_bitis") ?? "");
   const aciklama = String(formData.get("aciklama") ?? "") || null;
+  const muhendisId = String(formData.get("muhendis_id") ?? "") || null;
   const kalemler = parseKalemler(String(formData.get("kalemler") ?? ""));
 
   if (!donemBaslangic || !donemBitis) return { error: "Dönem başlangıç ve bitiş tarihleri gereklidir." };
+  if (!muhendisId) return { error: "Lütfen ilgili mühendisi seçin." };
+
+  const { data: atama } = await supabase
+    .from("muhendis_company_assignments")
+    .select("id")
+    .eq("company_id", companyId)
+    .eq("muhendis_id", muhendisId)
+    .maybeSingle();
+  if (!atama) return { error: "Seçilen mühendis bu firmaya atanmamış." };
 
   const { data: hakedis, error } = await supabase
     .from("hakedisler")
@@ -41,10 +85,11 @@ export async function createHakedis(_prevState: ActionState, formData: FormData)
       donem_baslangic: donemBaslangic,
       donem_bitis: donemBitis,
       aciklama,
+      muhendis_id: muhendisId,
       status: gonder ? "incelemede" : "taslak",
       created_by: profile.id,
     })
-    .select("id")
+    .select("id, hakedis_no")
     .single();
 
   if (error || !hakedis) {
@@ -56,6 +101,18 @@ export async function createHakedis(_prevState: ActionState, formData: FormData)
       kalemler.map((k) => ({ hakedis_id: hakedis.id, sira_no: k.sira_no, data: k.data, tutar: k.tutar })),
     );
     if (kalemError) return { error: "Kalemler kaydedilemedi: " + kalemError.message };
+  }
+
+  if (gonder) {
+    await muhendisAtamaMailiGonder(
+      supabase,
+      hakedis.id,
+      muhendisId,
+      companyId,
+      hakedis.hakedis_no,
+      donemBaslangic,
+      donemBitis,
+    );
   }
 
   revalidatePath("/hakedisler");
@@ -72,9 +129,22 @@ export async function updateHakedis(_prevState: ActionState, formData: FormData)
   const donemBaslangic = String(formData.get("donem_baslangic") ?? "");
   const donemBitis = String(formData.get("donem_bitis") ?? "");
   const aciklama = String(formData.get("aciklama") ?? "") || null;
+  const muhendisId = String(formData.get("muhendis_id") ?? "") || null;
   const kalemler = parseKalemler(String(formData.get("kalemler") ?? ""));
 
   if (!id) return { error: "Hakediş bulunamadı." };
+  if (!muhendisId) return { error: "Lütfen ilgili mühendisi seçin." };
+
+  const { data: mevcut } = await supabase.from("hakedisler").select("company_id, hakedis_no").eq("id", id).single();
+  if (!mevcut) return { error: "Hakediş bulunamadı." };
+
+  const { data: atama } = await supabase
+    .from("muhendis_company_assignments")
+    .select("id")
+    .eq("company_id", mevcut.company_id)
+    .eq("muhendis_id", muhendisId)
+    .maybeSingle();
+  if (!atama) return { error: "Seçilen mühendis bu firmaya atanmamış." };
 
   const { error: updateError } = await supabase
     .from("hakedisler")
@@ -82,6 +152,7 @@ export async function updateHakedis(_prevState: ActionState, formData: FormData)
       donem_baslangic: donemBaslangic,
       donem_bitis: donemBitis,
       aciklama,
+      muhendis_id: muhendisId,
       status: gonder ? "incelemede" : "taslak",
     })
     .eq("id", id);
@@ -94,6 +165,18 @@ export async function updateHakedis(_prevState: ActionState, formData: FormData)
       kalemler.map((k) => ({ hakedis_id: id, sira_no: k.sira_no, data: k.data, tutar: k.tutar })),
     );
     if (kalemError) return { error: "Kalemler kaydedilemedi: " + kalemError.message };
+  }
+
+  if (gonder) {
+    await muhendisAtamaMailiGonder(
+      supabase,
+      id,
+      muhendisId,
+      mevcut.company_id,
+      mevcut.hakedis_no,
+      donemBaslangic,
+      donemBitis,
+    );
   }
 
   revalidatePath(`/hakedisler/${id}`);

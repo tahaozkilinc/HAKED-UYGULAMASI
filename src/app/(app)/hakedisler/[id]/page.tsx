@@ -113,6 +113,12 @@ export default async function HakedisDetayPage(props: PageProps<"/hakedisler/[id
                 {formatTarih(hakedis.donem_baslangic)} – {formatTarih(hakedis.donem_bitis)}
               </span>
             </div>
+            {muhendis && (
+              <div className="flex flex-col gap-1">
+                <span className="text-muted-foreground">İlgili Mühendis</span>
+                <span className="font-medium">{muhendis.full_name || muhendis.email}</span>
+              </div>
+            )}
             {hakedis.aciklama && (
               <div className="flex flex-col gap-1">
                 <span className="text-muted-foreground">Açıklama</span>
@@ -122,11 +128,8 @@ export default async function HakedisDetayPage(props: PageProps<"/hakedisler/[id
             <Separator />
             <div className="flex flex-col gap-1 text-xs text-muted-foreground">
               <span>Oluşturan: {olusturan?.full_name || olusturan?.email || "-"}</span>
-              {muhendis && (
-                <span>
-                  Karar veren mühendis: {muhendis.full_name || muhendis.email}
-                  {hakedis.karar_tarihi && ` · ${formatTarihSaat(hakedis.karar_tarihi)}`}
-                </span>
+              {hakedis.karar_tarihi && muhendis && (
+                <span>Karar tarihi: {formatTarihSaat(hakedis.karar_tarihi)}</span>
               )}
               <span>Oluşturulma: {formatTarihSaat(hakedis.created_at)}</span>
             </div>

@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
 import type { Company, Hakedis, HakedisKalemi } from "@/types/database";
+import type { MuhendisOzet } from "@/lib/data/companies";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,13 +26,29 @@ interface HakedisFormProps {
   company: Company;
   /** Sadece admin akışı: firma seçimi değiştiğinde kalem şeması da değişir. */
   companies?: Company[];
+  muhendisler: MuhendisOzet[];
+  /** Sadece admin akışı: firma seçimi değiştiğinde mühendis listesi de değişir. */
+  muhendislerByCompany?: Record<string, MuhendisOzet[]>;
   defaultHakedis?: Hakedis;
   defaultKalemler?: HakedisKalemi[];
 }
 
-export function HakedisForm({ action, company, companies, defaultHakedis, defaultKalemler }: HakedisFormProps) {
+export function HakedisForm({
+  action,
+  company,
+  companies,
+  muhendisler,
+  muhendislerByCompany,
+  defaultHakedis,
+  defaultKalemler,
+}: HakedisFormProps) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const [selectedCompany, setSelectedCompany] = useState(company);
+
+  const secilebilirMuhendisler = useMemo(() => {
+    if (selectedCompany.id === company.id) return muhendisler;
+    return muhendislerByCompany?.[selectedCompany.id] ?? [];
+  }, [selectedCompany, company.id, muhendisler, muhendislerByCompany]);
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -91,6 +108,32 @@ export function HakedisForm({ action, company, companies, defaultHakedis, defaul
               required
               defaultValue={defaultHakedis?.donem_bitis}
             />
+          </div>
+
+          <div className="flex flex-col gap-1.5 sm:col-span-2">
+            <Label htmlFor="muhendis_id">İlgili Mühendis *</Label>
+            <Select
+              name="muhendis_id"
+              key={selectedCompany.id}
+              defaultValue={selectedCompany.id === company.id ? (defaultHakedis?.muhendis_id ?? undefined) : undefined}
+              required
+            >
+              <SelectTrigger id="muhendis_id">
+                <SelectValue placeholder="Mühendis seçin" />
+              </SelectTrigger>
+              <SelectContent>
+                {secilebilirMuhendisler.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.full_name || m.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {secilebilirMuhendisler.length === 0 && (
+              <p className="text-xs text-destructive">
+                Bu firma için atanmış mühendis yok. Önce Yönetim → Firmalar sayfasından bir mühendis atayın.
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5 sm:col-span-2">

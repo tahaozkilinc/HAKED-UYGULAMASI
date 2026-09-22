@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { listMuhendislerByCompany, listMuhendislerForCompany } from "@/lib/data/companies";
 import type { Company } from "@/types/database";
 import { HakedisForm } from "@/components/hakedis/hakedis-form";
 import { createHakedis } from "../actions";
@@ -16,11 +17,10 @@ export default async function YeniHakedisPage() {
     if (!profile.company_id) {
       return <p className="text-sm text-muted-foreground">Hesabınız henüz bir firmaya bağlanmamış. Lütfen yöneticinizle iletişime geçin.</p>;
     }
-    const { data: company } = await supabase
-      .from("companies")
-      .select("*")
-      .eq("id", profile.company_id)
-      .single();
+    const [{ data: company }, muhendisler] = await Promise.all([
+      supabase.from("companies").select("*").eq("id", profile.company_id).single(),
+      listMuhendislerForCompany(profile.company_id),
+    ]);
 
     if (!company) {
       return <p className="text-sm text-muted-foreground">Firma bilgisi bulunamadı.</p>;
@@ -29,12 +29,15 @@ export default async function YeniHakedisPage() {
     return (
       <div className="mx-auto flex max-w-4xl flex-col gap-4">
         <h1 className="text-2xl font-semibold">Yeni Hakediş</h1>
-        <HakedisForm action={createHakedis} company={company as Company} />
+        <HakedisForm action={createHakedis} company={company as Company} muhendisler={muhendisler} />
       </div>
     );
   }
 
-  const { data: companies } = await supabase.from("companies").select("*").eq("is_active", true).order("name");
+  const [{ data: companies }, muhendislerByCompany] = await Promise.all([
+    supabase.from("companies").select("*").eq("is_active", true).order("name"),
+    listMuhendislerByCompany(),
+  ]);
   const typedCompanies = (companies ?? []) as Company[];
 
   if (typedCompanies.length === 0) {
@@ -44,7 +47,13 @@ export default async function YeniHakedisPage() {
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4">
       <h1 className="text-2xl font-semibold">Yeni Hakediş</h1>
-      <HakedisForm action={createHakedis} company={typedCompanies[0]} companies={typedCompanies} />
+      <HakedisForm
+        action={createHakedis}
+        company={typedCompanies[0]}
+        companies={typedCompanies}
+        muhendisler={muhendislerByCompany[typedCompanies[0].id] ?? []}
+        muhendislerByCompany={muhendislerByCompany}
+      />
     </div>
   );
 }

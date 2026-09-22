@@ -2,14 +2,14 @@ import { notFound, redirect } from "next/navigation";
 
 import { requireProfile } from "@/lib/auth";
 import { getHakedisDetail } from "@/lib/data/hakedisler";
+import { listMuhendislerForCompany } from "@/lib/data/companies";
 import { DUZENLENEBILIR_DURUMLAR } from "@/lib/constants";
 import { HakedisForm } from "@/components/hakedis/hakedis-form";
 import { updateHakedis } from "../../actions";
 
 export default async function HakedisDuzenlePage(props: PageProps<"/hakedisler/[id]/duzenle">) {
   const { id } = await props.params;
-  const profile = await requireProfile();
-  const detail = await getHakedisDetail(id);
+  const [profile, detail] = await Promise.all([requireProfile(), getHakedisDetail(id)]);
 
   if (!detail) notFound();
 
@@ -20,6 +20,8 @@ export default async function HakedisDuzenlePage(props: PageProps<"/hakedisler/[
   if (!yetkili || !DUZENLENEBILIR_DURUMLAR.includes(detail.hakedis.status)) {
     redirect(`/hakedisler/${id}`);
   }
+
+  const muhendisler = await listMuhendislerForCompany(detail.company.id);
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4">
@@ -33,6 +35,7 @@ export default async function HakedisDuzenlePage(props: PageProps<"/hakedisler/[
       <HakedisForm
         action={updateHakedis}
         company={detail.company}
+        muhendisler={muhendisler}
         defaultHakedis={detail.hakedis}
         defaultKalemler={detail.kalemler}
       />

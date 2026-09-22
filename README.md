@@ -97,10 +97,12 @@ değerlerini girin:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY` (sadece admin kullanıcı davet etme işlemleri
   için sunucu tarafında kullanılır, istemciye asla gönderilmez)
+- `RESEND_API_KEY` (opsiyonel — hakediş bir mühendise gönderildiğinde
+  bildirim e-postası atmak için, https://resend.com)
 
 ### 2. Veritabanı şemasını uygulayın
 
-`supabase/migrations` altındaki dosyaları sırasıyla (0001 → 0004) Supabase
+`supabase/migrations` altındaki dosyaları sırasıyla (0001 → 0005) Supabase
 SQL Editor'de çalıştırın, ya da Supabase CLI kullanıyorsanız:
 
 ```bash
