@@ -45,7 +45,7 @@ export async function updateCompanyInfo(_prevState: ActionState, formData: FormD
   const name = String(formData.get("name") ?? "").trim();
   if (!id || !name) return { error: "Geçersiz istek." };
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("companies")
     .update({
       name,
@@ -58,9 +58,17 @@ export async function updateCompanyInfo(_prevState: ActionState, formData: FormD
       notes: String(formData.get("notes") ?? "").trim() || null,
       is_active: formData.get("is_active") === "on",
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
 
   if (error) return { error: "Firma güncellenemedi: " + error.message };
+  if (!data) {
+    return {
+      error:
+        "Firma güncellenemedi: değişiklik veritabanına yazılmadı. Hesabınızın admin yetkisi olmayabilir (profiles.role = 'admin' olmalı) ya da veritabanı erişim kuralları (RLS migration'ları) eksik olabilir.",
+    };
+  }
 
   revalidatePath(`/admin/firmalar/${id}`);
   revalidatePath("/admin");
@@ -85,8 +93,14 @@ export async function updateCompanySchema(_prevState: ActionState, formData: For
     return { error: "Alan anahtarları benzersiz olmalıdır." };
   }
 
-  const { error } = await supabase.from("companies").update({ hakedis_schema: schema }).eq("id", id);
+  const { data, error } = await supabase
+    .from("companies")
+    .update({ hakedis_schema: schema })
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
   if (error) return { error: "Form şeması kaydedilemedi: " + error.message };
+  if (!data) return { error: "Form şeması kaydedilemedi: değişiklik veritabanına yazılmadı (yetki sorunu olabilir)." };
 
   revalidatePath(`/admin/firmalar/${id}`);
   return { success: true };
@@ -114,8 +128,14 @@ export async function updateCompanyLogo(_prevState: ActionState, formData: FormD
     data: { publicUrl },
   } = supabase.storage.from("firma-logolari").getPublicUrl(path);
 
-  const { error } = await supabase.from("companies").update({ logo_url: publicUrl }).eq("id", id);
+  const { data, error } = await supabase
+    .from("companies")
+    .update({ logo_url: publicUrl })
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
   if (error) return { error: "Logo kaydedilemedi: " + error.message };
+  if (!data) return { error: "Logo kaydedilemedi: değişiklik veritabanına yazılmadı (yetki sorunu olabilir)." };
 
   revalidatePath(`/admin/firmalar/${id}`);
   revalidatePath("/admin");
@@ -129,8 +149,14 @@ export async function removeCompanyLogo(_prevState: ActionState, formData: FormD
   const id = String(formData.get("id") ?? "");
   if (!id) return { error: "Geçersiz istek." };
 
-  const { error } = await supabase.from("companies").update({ logo_url: null }).eq("id", id);
+  const { data, error } = await supabase
+    .from("companies")
+    .update({ logo_url: null })
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
   if (error) return { error: "Logo kaldırılamadı: " + error.message };
+  if (!data) return { error: "Logo kaldırılamadı: değişiklik veritabanına yazılmadı (yetki sorunu olabilir)." };
 
   revalidatePath(`/admin/firmalar/${id}`);
   revalidatePath("/admin");

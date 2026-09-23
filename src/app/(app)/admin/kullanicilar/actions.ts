@@ -83,7 +83,7 @@ export async function updateUser(_prevState: ActionState, formData: FormData): P
 
   if (role === "firma" && !companyId) return { error: "Firma rolündeki kullanıcı için bir firma seçmelisiniz." };
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .update({
       full_name: fullName,
@@ -92,9 +92,17 @@ export async function updateUser(_prevState: ActionState, formData: FormData): P
       phone,
       is_active: isActive,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
 
   if (error) return { error: "Kullanıcı güncellenemedi: " + error.message };
+  if (!data) {
+    return {
+      error:
+        "Kullanıcı güncellenemedi: değişiklik veritabanına yazılmadı. Hesabınızın admin yetkisi olmayabilir (profiles.role = 'admin' olmalı) ya da veritabanı erişim kuralları (RLS migration'ları) eksik olabilir.",
+    };
+  }
 
   revalidatePath("/admin");
   return { success: true };

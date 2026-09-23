@@ -138,7 +138,7 @@ export async function updateHakedis(_prevState: ActionState, formData: FormData)
   const { data: mevcut } = await supabase.from("hakedisler").select("company_id, hakedis_no, muhendis_id").eq("id", id).single();
   if (!mevcut) return { error: "Hakediş bulunamadı." };
 
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from("hakedisler")
     .update({
       donem_baslangic: donemBaslangic,
@@ -146,9 +146,12 @@ export async function updateHakedis(_prevState: ActionState, formData: FormData)
       aciklama,
       status: gonder ? "incelemede" : "taslak",
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
 
   if (updateError) return { error: "Hakediş güncellenemedi: " + updateError.message };
+  if (!updated) return { error: "Hakediş güncellenemedi: değişiklik kaydedilmedi (yetki sorunu olabilir)." };
 
   await supabase.from("hakedis_kalemleri").delete().eq("hakedis_id", id);
   if (kalemler.length > 0) {
@@ -189,28 +192,37 @@ export async function muhendisKarar(_prevState: ActionState, formData: FormData)
   } = await supabase.auth.getUser();
 
   if (karar === "onayla") {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("hakedisler")
       .update({ status: "onaylandi", karar_veren_id: user?.id })
-      .eq("id", id);
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
     if (error) return { error: "Onaylanamadı: " + error.message };
+    if (!data) return { error: "Onaylanamadı: değişiklik kaydedilmedi (yetki sorunu olabilir)." };
   } else if (karar === "revizyon") {
     if (!not) return { error: "Revizyon talebinde bir açıklama girmelisiniz." };
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("hakedisler")
       .update({
         status: "revizyon_istendi",
         son_revizyon_notu: not,
         karar_veren_id: user?.id,
       })
-      .eq("id", id);
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
     if (error) return { error: "Revizyon talebi gönderilemedi: " + error.message };
+    if (!data) return { error: "Revizyon talebi gönderilemedi: değişiklik kaydedilmedi (yetki sorunu olabilir)." };
   } else if (karar === "sil") {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("hakedisler")
       .update({ status: "silindi", karar_veren_id: user?.id, son_revizyon_notu: not })
-      .eq("id", id);
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
     if (error) return { error: "Hakediş silinemedi: " + error.message };
+    if (!data) return { error: "Hakediş silinemedi: değişiklik kaydedilmedi (yetki sorunu olabilir)." };
   } else {
     return { error: "Geçersiz işlem." };
   }

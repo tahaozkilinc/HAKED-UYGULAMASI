@@ -16,12 +16,15 @@ export async function updateOwnProfile(_prevState: ActionState, formData: FormDa
 
   if (!fullName) return { error: "Ad soyad boş olamaz." };
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .update({ full_name: fullName, phone })
-    .eq("id", profile.id);
+    .eq("id", profile.id)
+    .select("id")
+    .maybeSingle();
 
   if (error) return { error: "Bilgiler güncellenemedi: " + error.message };
+  if (!data) return { error: "Bilgiler güncellenemedi: değişiklik kaydedilmedi." };
 
   revalidatePath("/profil");
   return { success: true };
