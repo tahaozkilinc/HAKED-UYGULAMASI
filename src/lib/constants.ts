@@ -48,6 +48,7 @@ export const ALAN_TIPI_ETIKETLERI: Record<SchemaFieldType, string> = {
   number: "Sayı",
   currency: "Tutar (₺)",
   date: "Tarih",
+  time: "Saat",
   select: "Seçim Listesi",
   computed: "Hesaplanan (formül)",
 };

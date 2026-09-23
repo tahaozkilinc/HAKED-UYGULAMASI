@@ -181,7 +181,15 @@ export function KalemForm({ schema, name, defaultItems, readOnly }: KalemFormPro
                     <TableCell key={field.key} className="min-w-28">
                       <Input
                         className="h-8"
-                        type={field.type === "number" || field.type === "currency" ? "number" : field.type === "date" ? "date" : "text"}
+                        type={
+                          field.type === "number" || field.type === "currency"
+                            ? "number"
+                            : field.type === "date"
+                              ? "date"
+                              : field.type === "time"
+                                ? "time"
+                                : "text"
+                        }
                         step={field.type === "number" || field.type === "currency" ? "any" : undefined}
                         value={value}
                         required={field.required}

@@ -28,6 +28,7 @@ export type SchemaFieldType =
   | "number"
   | "currency"
   | "date"
+  | "time"
   | "select"
   | "computed";
 
