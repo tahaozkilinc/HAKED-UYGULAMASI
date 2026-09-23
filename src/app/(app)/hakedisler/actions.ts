@@ -78,6 +78,11 @@ export async function createHakedis(_prevState: ActionState, formData: FormData)
     .maybeSingle();
   if (!secilenMuhendis) return { error: "Seçilen kullanıcı bir mühendis değil." };
 
+  // Hakediş her zaman "taslak" olarak oluşturulur: kalem yazma yetki kuralı
+  // (RLS) sadece taslak/revizyon_istendi durumundaki hakedişlere satır
+  // eklenmesine izin veriyor. Baştan "incelemede" ile oluşturup ardından
+  // kalem eklemeye çalışmak bu kuralı ihlal eder ("gönder" seçiliyse
+  // kalemler kaydedildikten sonra durumu ayrıca "incelemede"ye çekiyoruz).
   const { data: hakedis, error } = await supabase
     .from("hakedisler")
     .insert({
@@ -86,7 +91,7 @@ export async function createHakedis(_prevState: ActionState, formData: FormData)
       donem_bitis: donemBitis,
       aciklama,
       muhendis_id: muhendisId,
-      status: gonder ? "incelemede" : "taslak",
+      status: "taslak",
       created_by: profile.id,
     })
     .select("id, hakedis_no")
@@ -104,6 +109,12 @@ export async function createHakedis(_prevState: ActionState, formData: FormData)
   }
 
   if (gonder) {
+    const { error: gonderError } = await supabase
+      .from("hakedisler")
+      .update({ status: "incelemede" })
+      .eq("id", hakedis.id);
+    if (gonderError) return { error: "Hakediş incelemeye gönderilemedi: " + gonderError.message };
+
     await muhendisAtamaMailiGonder(
       supabase,
       hakedis.id,

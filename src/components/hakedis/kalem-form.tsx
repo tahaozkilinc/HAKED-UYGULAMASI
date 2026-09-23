@@ -146,7 +146,11 @@ export function KalemForm({ schema, name, defaultItems, readOnly }: KalemFormPro
                   if (field.type === "select") {
                     return (
                       <TableCell key={field.key} className="min-w-36">
-                        <Select value={value} onValueChange={(v) => updateCell(row.uid, field.key, v)}>
+                        <Select
+                          value={value}
+                          onValueChange={(v) => updateCell(row.uid, field.key, v)}
+                          required={field.required}
+                        >
                           <SelectTrigger className="h-8">
                             <SelectValue placeholder="Seçiniz" />
                           </SelectTrigger>
