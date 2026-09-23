@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { listCompaniesWithTags, listTags } from "@/lib/data/companies";
 import type { Company, Profile } from "@/types/database";
 import { ROL_ETIKETLERI } from "@/lib/constants";
-import { formatPara } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -61,7 +60,6 @@ export default async function YonetimPage() {
                       <TableRow>
                         <TableHead>Firma</TableHead>
                         <TableHead>Etiketler</TableHead>
-                        <TableHead>Sözleşme Bedeli</TableHead>
                         <TableHead>Durum</TableHead>
                         <TableHead />
                       </TableRow>
@@ -84,7 +82,6 @@ export default async function YonetimPage() {
                               ))}
                             </div>
                           </TableCell>
-                          <TableCell>{formatPara(c.contract_amount)}</TableCell>
                           <TableCell>
                             <Badge variant={c.is_active ? "success" : "secondary"}>
                               {c.is_active ? "Aktif" : "Pasif"}

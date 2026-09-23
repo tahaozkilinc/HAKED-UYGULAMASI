@@ -21,11 +21,6 @@ export async function createCompany(_prevState: ActionState, formData: FormData)
     .insert({
       name,
       short_code: String(formData.get("short_code") ?? "").trim() || null,
-      tax_number: String(formData.get("tax_number") ?? "").trim() || null,
-      contact_name: String(formData.get("contact_name") ?? "").trim() || null,
-      contact_phone: String(formData.get("contact_phone") ?? "").trim() || null,
-      contact_email: String(formData.get("contact_email") ?? "").trim() || null,
-      contract_amount: formData.get("contract_amount") ? Number(formData.get("contract_amount")) : null,
       notes: String(formData.get("notes") ?? "").trim() || null,
     })
     .select("id")
@@ -50,11 +45,6 @@ export async function updateCompanyInfo(_prevState: ActionState, formData: FormD
     .update({
       name,
       short_code: String(formData.get("short_code") ?? "").trim() || null,
-      tax_number: String(formData.get("tax_number") ?? "").trim() || null,
-      contact_name: String(formData.get("contact_name") ?? "").trim() || null,
-      contact_phone: String(formData.get("contact_phone") ?? "").trim() || null,
-      contact_email: String(formData.get("contact_email") ?? "").trim() || null,
-      contract_amount: formData.get("contract_amount") ? Number(formData.get("contract_amount")) : null,
       notes: String(formData.get("notes") ?? "").trim() || null,
       is_active: formData.get("is_active") === "on",
     })
@@ -182,5 +172,75 @@ export async function setCompanyTags(_prevState: ActionState, formData: FormData
 
   revalidatePath(`/admin/firmalar/${id}`);
   revalidatePath("/admin");
+  return { success: true };
+}
+
+export async function addCompanyContact(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  await requireRole("admin");
+  const supabase = await createClient();
+
+  const companyId = String(formData.get("company_id") ?? "");
+  const fullName = String(formData.get("full_name") ?? "").trim();
+  if (!companyId || !fullName) return { error: "Ad soyad gereklidir." };
+
+  const { data, error } = await supabase
+    .from("company_contacts")
+    .insert({
+      company_id: companyId,
+      full_name: fullName,
+      title: String(formData.get("title") ?? "").trim() || null,
+      phone: String(formData.get("phone") ?? "").trim() || null,
+      email: String(formData.get("email") ?? "").trim() || null,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) return { error: "Yetkili kişi eklenemedi: " + (error?.message ?? "") };
+
+  revalidatePath(`/admin/firmalar/${companyId}`);
+  return { success: true };
+}
+
+export async function updateCompanyContact(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  await requireRole("admin");
+  const supabase = await createClient();
+
+  const id = String(formData.get("id") ?? "");
+  const companyId = String(formData.get("company_id") ?? "");
+  const fullName = String(formData.get("full_name") ?? "").trim();
+  if (!id || !fullName) return { error: "Ad soyad gereklidir." };
+
+  const { data, error } = await supabase
+    .from("company_contacts")
+    .update({
+      full_name: fullName,
+      title: String(formData.get("title") ?? "").trim() || null,
+      phone: String(formData.get("phone") ?? "").trim() || null,
+      email: String(formData.get("email") ?? "").trim() || null,
+    })
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+
+  if (error) return { error: "Yetkili kişi güncellenemedi: " + error.message };
+  if (!data) return { error: "Yetkili kişi güncellenemedi: değişiklik kaydedilmedi (yetki sorunu olabilir)." };
+
+  revalidatePath(`/admin/firmalar/${companyId}`);
+  return { success: true };
+}
+
+export async function deleteCompanyContact(_prevState: ActionState, formData: FormData): Promise<ActionState> {
+  await requireRole("admin");
+  const supabase = await createClient();
+
+  const id = String(formData.get("id") ?? "");
+  const companyId = String(formData.get("company_id") ?? "");
+  if (!id) return { error: "Geçersiz istek." };
+
+  const { data, error } = await supabase.from("company_contacts").delete().eq("id", id).select("id").maybeSingle();
+  if (error) return { error: "Yetkili kişi silinemedi: " + error.message };
+  if (!data) return { error: "Yetkili kişi silinemedi: değişiklik kaydedilmedi (yetki sorunu olabilir)." };
+
+  revalidatePath(`/admin/firmalar/${companyId}`);
   return { success: true };
 }

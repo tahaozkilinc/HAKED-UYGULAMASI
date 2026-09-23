@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import type { Company, Profile, Tag } from "@/types/database";
+import type { Company, CompanyContact, Profile, Tag } from "@/types/database";
 
 export interface CompanyWithTags extends Company {
   company_tags: { tags: Tag }[];
@@ -40,6 +40,17 @@ export async function getCompanyWithTags(id: string): Promise<CompanyWithTags | 
     .single();
   if (error) return null;
   return data as unknown as CompanyWithTags;
+}
+
+export async function listCompanyContacts(companyId: string): Promise<CompanyContact[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("company_contacts")
+    .select("*")
+    .eq("company_id", companyId)
+    .order("created_at");
+  if (error) throw error;
+  return (data ?? []) as CompanyContact[];
 }
 
 export async function listTags(): Promise<Tag[]> {

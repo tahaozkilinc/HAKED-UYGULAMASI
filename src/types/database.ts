@@ -77,16 +77,22 @@ export interface Company {
   id: string;
   name: string;
   short_code: string | null;
-  tax_number: string | null;
-  contact_name: string | null;
-  contact_phone: string | null;
-  contact_email: string | null;
-  contract_amount: number | null;
   currency: string;
   is_active: boolean;
   hakedis_schema: HakedisSchema;
   notes: string | null;
   logo_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompanyContact {
+  id: string;
+  company_id: string;
+  full_name: string;
+  title: string | null;
+  phone: string | null;
+  email: string | null;
   created_at: string;
   updated_at: string;
 }

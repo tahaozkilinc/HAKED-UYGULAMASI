@@ -10,11 +10,20 @@ import type { Profile } from "@/types/database";
 // (layout + sayfa) çağrılsa bile Supabase'e sadece bir kez gidilir —
 // aksi halde her sayfa geçişinde auth kontrolü tekrar tekrar yapılıp
 // gereksiz gecikmeye yol açıyordu.
+//
+// getSession() (ağ isteği yapmadan, çerezden yerel JWT çözümü) kasıtlı
+// olarak getUser() yerine kullanılıyor: middleware (updateSession) bu
+// isteğin çerezlerini zaten Supabase Auth sunucusuna karşı doğrulamış
+// durumda; burada tekrar ağ isteği yapmak sadece gecikme ekler. Asıl
+// güvenlik sınırı zaten Postgres RLS'tir — her veri sorgusu JWT imzasını
+// veritabanı tarafında bağımsızca doğrular, dolayısıyla burada yerel
+// oturumu "güvenilir" saymak veri erişimini gevşetmez.
 export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
 
   if (!user) return null;
 

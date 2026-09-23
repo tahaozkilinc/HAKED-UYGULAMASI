@@ -25,12 +25,15 @@ export default async function HakedisDetayPage(props: PageProps<"/hakedisler/[id
   const { hakedis, company, kalemler, ekler, hareketler, olusturan, muhendis } = detail;
   const supabase = await createClient();
 
-  const ekSignedUrls = await Promise.all(
-    ekler.map(async (ek) => {
-      const { data } = await supabase.storage.from("hakedis-ekler").createSignedUrl(ek.storage_path, 60 * 30);
-      return { ...ek, url: data?.signedUrl ?? null };
-    }),
-  );
+  // Her ek için ayrı ayrı signed URL istemek yerine (N ağ isteği), Supabase'in
+  // toplu imzalama API'siyle tek istekte alıyoruz.
+  const { data: signedUrlData } = ekler.length
+    ? await supabase.storage.from("hakedis-ekler").createSignedUrls(
+        ekler.map((ek) => ek.storage_path),
+        60 * 30,
+      )
+    : { data: [] as { path: string | null; signedUrl: string }[] };
+  const ekSignedUrls = ekler.map((ek, i) => ({ ...ek, url: signedUrlData?.[i]?.signedUrl ?? null }));
   const muhendisYetkili = profile.role === "muhendis" && hakedis.muhendis_id === profile.id;
 
   const firmaDuzenleyebilir =

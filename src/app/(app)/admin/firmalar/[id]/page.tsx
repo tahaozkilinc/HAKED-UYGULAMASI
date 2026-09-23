@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { requireRole } from "@/lib/auth";
-import { getCompanyWithTags, listTags } from "@/lib/data/companies";
+import { getCompanyWithTags, listCompanyContacts, listTags } from "@/lib/data/companies";
 import { listHakedisler } from "@/lib/data/hakedisler";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +10,7 @@ import { CompanyLogoForm } from "./logo-form";
 import { CompanyTagsForm } from "./tags-form";
 import { CompanySchemaForm } from "./schema-form";
 import { CompanyHakedislerPanel } from "./hakedisler-panel";
+import { ContactsPanel } from "./contacts-panel";
 
 function toDateInputValue(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -24,7 +25,7 @@ export default async function FirmaDetayPage(props: PageProps<"/admin/firmalar/[
   const to = typeof searchParams.to === "string" ? searchParams.to : undefined;
   const tab = typeof searchParams.tab === "string" ? searchParams.tab : "bilgiler";
 
-  const [company, allTags, hakedisler] = await Promise.all([
+  const [company, allTags, hakedisler, contacts] = await Promise.all([
     getCompanyWithTags(id),
     listTags(),
     listHakedisler({
@@ -32,6 +33,7 @@ export default async function FirmaDetayPage(props: PageProps<"/admin/firmalar/[
       baslangic: from ? `${from}T00:00:00` : undefined,
       bitis: to ? `${to}T23:59:59` : undefined,
     }),
+    listCompanyContacts(id),
   ]);
   if (!company) notFound();
 
@@ -78,6 +80,14 @@ export default async function FirmaDetayPage(props: PageProps<"/admin/firmalar/[
             </CardHeader>
             <CardContent>
               <CompanyInfoForm company={company} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Yetkili Kişiler</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ContactsPanel companyId={company.id} contacts={contacts} />
             </CardContent>
           </Card>
         </TabsContent>

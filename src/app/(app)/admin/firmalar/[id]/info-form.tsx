@@ -30,32 +30,6 @@ export function CompanyInfoForm({ company }: { company: Company }) {
         <Label htmlFor="short_code">Kısa Kod</Label>
         <Input id="short_code" name="short_code" defaultValue={company.short_code ?? ""} />
       </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="tax_number">Vergi No</Label>
-        <Input id="tax_number" name="tax_number" defaultValue={company.tax_number ?? ""} />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="contract_amount">Sözleşme Bedeli (₺)</Label>
-        <Input
-          id="contract_amount"
-          name="contract_amount"
-          type="number"
-          step="any"
-          defaultValue={company.contract_amount ?? ""}
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="contact_name">Yetkili Kişi</Label>
-        <Input id="contact_name" name="contact_name" defaultValue={company.contact_name ?? ""} />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="contact_phone">Telefon</Label>
-        <Input id="contact_phone" name="contact_phone" defaultValue={company.contact_phone ?? ""} />
-      </div>
-      <div className="flex flex-col gap-1.5 sm:col-span-2">
-        <Label htmlFor="contact_email">E-posta</Label>
-        <Input id="contact_email" name="contact_email" type="email" defaultValue={company.contact_email ?? ""} />
-      </div>
       <div className="flex flex-col gap-1.5 sm:col-span-2">
         <Label htmlFor="notes">Notlar</Label>
         <Textarea id="notes" name="notes" defaultValue={company.notes ?? ""} />
